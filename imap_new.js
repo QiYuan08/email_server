@@ -32,6 +32,7 @@ const readMail = async (mailID) => {
       email: userEmail,
       subject: parsed.headers.get("subject"),
       message: parsed.text,
+      to: userEmail,
     })
     .set("Content-Type", "application/json")
     .set("Accept", "*/*")
@@ -58,6 +59,10 @@ const main = async () => {
     client.on("error", (error) => {
       console.log(error);
       readMail();
+    });
+
+    client.on("close", () => {
+      main();
     });
   } finally {
     lock.release();
