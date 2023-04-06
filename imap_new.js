@@ -61,6 +61,10 @@ const main = async () => {
       readMail();
     });
 
+    client.on("log", (entry) => {
+      console.log(`${log.cid} ${log.msg}`);
+    });
+
     client.on("close", () => {
       main();
     });
