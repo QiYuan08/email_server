@@ -4,16 +4,7 @@ const superagent = require("superagent");
 
 const userEmail = "chaelqi89@gmail.com";
 
-const client = new ImapFlow({
-  host: "imap.gmail.com",
-  port: 993,
-  secure: true,
-  auth: {
-    // chaelqi89gmail
-    user: userEmail,
-    pass: "ghpdcpxcsgviyczr",
-  },
-});
+let client;
 
 const readMail = async (mailID) => {
   // Then download the whole email by using null
@@ -43,13 +34,23 @@ const readMail = async (mailID) => {
 };
 
 const main = async () => {
+  client = new ImapFlow({
+    host: "imap.gmail.com",
+    port: 993,
+    secure: true,
+    auth: {
+      // chaelqi89gmail
+      user: userEmail,
+      pass: "ghpdcpxcsgviyczr",
+    },
+  });
+
   await client.connect();
 
   // await client.mailboxOpen("INBOX");
   let lock = await client.getMailboxLock("INBOX");
 
   try {
-    // on new email send call the callback
     client.on("exists", (data) => {
       console.log(`Message count in "${data.path}" is ${data.count}`);
       console.log(data);
