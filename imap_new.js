@@ -1,9 +1,15 @@
 const { ImapFlow } = require("imapflow");
 const simpleParser = require("mailparser").simpleParser;
 const superagent = require("superagent");
+// const { initializeApp } = require("firebase-admin/app");
+const path = require("path");
+const fs = require("fs");
+const os = require("os");
+const admin = require("firebase-admin");
+const bucket = require("./storage");
 
+// const app = initializeApp();
 const userEmail = "chaelqi89@gmail.com";
-
 let client;
 
 const readMail = async (mailID) => {
@@ -15,22 +21,87 @@ const readMail = async (mailID) => {
   // and simpleParser is able to process the stream as a Promise
   const parsed = await simpleParser(content);
 
+  let attachmentArr = [];
+  let ticketID = "RMTK" + Math.floor(100000 + Math.random() * 900000);
+
+  parsed.attachments.forEach((item) => {
+    attachmentArr.push({
+      filename: item.filename,
+      size: item.size,
+      // contentBuffer: item.content,
+    });
+
+    writeToFile(item.filename, item.content, ticketID);
+  });
+
+  // superagent
+  //   .post(
+  //     "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket"
+  //   )
+  //   .send({
+  //     email: userEmail,
+  //     subject: parsed.headers.get("subject"),
+  //     message: parsed.text,
+  //     to: userEmail,
+  //     attachments: attachmentArr,
+  //   })
+  //   .set("Content-Type", "application/json")
+  //   .set("Accept", "*/*")
+  //   .then((response) => {
+  //     console.log(response.data);
+  //   })
+  //   .catch((err) => console.error(err));
+
+  console.log(parsed.cc);
+
   superagent
     .post(
-      "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket"
+      "http://127.0.0.1:5001/ticketing-60a94/us-central1/mailer/create-ticket"
     )
+    .set("Content-Type", "application/json")
     .send({
+      ticketID: ticketID,
       email: userEmail,
       subject: parsed.headers.get("subject"),
       message: parsed.text,
       to: userEmail,
+      attachments: attachmentArr,
+      cc: parsed.cc,
     })
-    .set("Content-Type", "application/json")
     .set("Accept", "*/*")
     .then((response) => {
-      console.log(response.data);
+      // console.log(response);
     })
     .catch((err) => console.error(err));
+};
+
+const writeToFile = async (fileName, data, ticketID) => {
+  let filehandle = null;
+  const tmpPath = path.join(os.tmpdir(), fileName);
+
+  try {
+    filehandle = await fs.promises.open(tmpPath, (mode = "w"));
+    // Write to file
+    await filehandle.writeFile(data, { encoding: "base64" });
+  } finally {
+    if (filehandle) {
+      // Close the file if it is opened.
+      await filehandle.close();
+      // console.log("finished reading");
+    }
+  }
+
+  const destination = `${ticketID}/${fileName}`;
+
+  try {
+    await bucket.upload(tmpPath, {
+      destination: destination,
+    });
+  } catch (err) {
+    console.error(err);
+  }
+
+  console.log("successfully uploaded to " + ticketID);
 };
 
 const main = async () => {
@@ -50,6 +121,10 @@ const main = async () => {
   // await client.mailboxOpen("INBOX");
   let lock = await client.getMailboxLock("INBOX");
 
+  // await readMail();
+  // lock.release();
+  // client.close();
+
   try {
     client.on("exists", (data) => {
       console.log(`Message count in "${data.path}" is ${data.count}`);
@@ -59,7 +134,6 @@ const main = async () => {
 
     client.on("error", (error) => {
       console.log(error);
-      readMail();
     });
 
     client.on("log", (entry) => {
@@ -67,6 +141,7 @@ const main = async () => {
     });
 
     client.on("close", () => {
+      lock.release();
       main();
     });
   } finally {

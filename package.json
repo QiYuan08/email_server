@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "firebase-admin": "^11.6.0",
     "imapflow": "^1.0.121",
     "jsdom": "^21.1.1",
     "mailparser": "^3.6.4",
