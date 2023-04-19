@@ -5,6 +5,7 @@
     "jsdom": "^21.1.1",
     "mailparser": "^3.6.4",
     "node-imap": "^0.9.6",
-    "superagent": "^8.0.9"
+    "superagent": "^8.0.9",
+    "uuid": "^9.0.0"
   }
 }

@@ -7,6 +7,7 @@ const fs = require("fs");
 const os = require("os");
 const admin = require("firebase-admin");
 const bucket = require("./storage");
+const { v4 } = require("uuid");
 
 // const app = initializeApp();
 const userEmail = "chaelqi89@gmail.com";
@@ -22,6 +23,7 @@ const readMail = async (mailID) => {
   const parsed = await simpleParser(content);
 
   let attachmentArr = [];
+  let firebaseMessageId = v4();
   let ticketID = "RMTK" + Math.floor(100000 + Math.random() * 900000);
 
   parsed.attachments.forEach((item) => {
@@ -31,26 +33,8 @@ const readMail = async (mailID) => {
       // contentBuffer: item.content,
     });
 
-    writeToFile(item.filename, item.content, ticketID);
+    writeToFile(item.filename, item.content, ticketID, firebaseMessageId);
   });
-
-  // superagent
-  //   .post(
-  //     "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket"
-  //   )
-  //   .send({
-  //     email: userEmail,
-  //     subject: parsed.headers.get("subject"),
-  //     message: parsed.text,
-  //     to: userEmail,
-  //     attachments: attachmentArr,
-  //   })
-  //   .set("Content-Type", "application/json")
-  //   .set("Accept", "*/*")
-  //   .then((response) => {
-  //     console.log(response.data);
-  //   })
-  //   .catch((err) => console.error(err));
 
   // https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket
   // "http://127.0.0.1:5001/ticketing-60a94/us-central1/mailer/create-ticket"
@@ -62,10 +46,13 @@ const readMail = async (mailID) => {
     .set("Content-Type", "application/json")
     .send({
       ticketID: ticketID,
-      email: userEmail,
+      firebaseMessageId: firebaseMessageId,
+      references: parsed.references,
+      email: parsed.from.value[0].address,
+      messageId: parsed.messageId,
       subject: parsed.headers.get("subject"),
-      message: parsed.text,
-      to: userEmail,
+      message: parsed.html,
+      to: parsed.to.value[0].address,
       attachments: attachmentArr,
       cc: parsed.cc?.value?.map((addr) => addr.address) ?? [],
     })
@@ -78,7 +65,7 @@ const readMail = async (mailID) => {
     });
 };
 
-const writeToFile = async (fileName, data, ticketID) => {
+const writeToFile = async (fileName, data, ticketID, messageId) => {
   let filehandle = null;
   const tmpPath = path.join(os.tmpdir(), fileName);
 
@@ -94,7 +81,7 @@ const writeToFile = async (fileName, data, ticketID) => {
     }
   }
 
-  const destination = `${ticketID}/${fileName}`;
+  const destination = `${ticketID}/${messageId}/${fileName}`;
 
   try {
     await bucket.upload(tmpPath, {
@@ -104,7 +91,7 @@ const writeToFile = async (fileName, data, ticketID) => {
     console.error(err);
   }
 
-  console.log("successfully uploaded to " + ticketID);
+  console.log("successfully uploaded to " + ticketID, messageId);
 };
 
 const main = async () => {
@@ -124,32 +111,32 @@ const main = async () => {
   // await client.mailboxOpen("INBOX");
   let lock = await client.getMailboxLock("INBOX");
 
-  await readMail();
-  lock.release();
-  client.close();
+  // await readMail();
+  // lock.release();
+  // client.close();
 
-  // try {
-  //   client.on("exists", (data) => {
-  //     console.log(`Message count in "${data.path}" is ${data.count}`);
-  //     console.log(data);
-  //     readMail();
-  //   });
+  try {
+    client.on("exists", (data) => {
+      console.log(`Message count in "${data.path}" is ${data.count}`);
+      console.log(data);
+      readMail();
+    });
 
-  //   client.on("error", (error) => {
-  //     console.log(error);
-  //   });
+    client.on("error", (error) => {
+      console.log(error);
+    });
 
-  //   client.on("log", (entry) => {
-  //     console.log(`${log.cid} ${log.msg}`);
-  //   });
+    client.on("log", (entry) => {
+      console.log(`${entry.cid} ${entry.msg}`);
+    });
 
-  //   client.on("close", () => {
-  //     lock.release();
-  //     main();
-  //   });
-  // } finally {
-  //   lock.release();
-  // }
+    client.on("close", () => {
+      lock.release();
+      main();
+    });
+  } finally {
+    lock.release();
+  }
 };
 
 // readMail(5169);
