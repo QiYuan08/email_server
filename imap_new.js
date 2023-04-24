@@ -24,7 +24,7 @@ const readMail = async (mailID) => {
 
   let attachmentArr = [];
   let firebaseMessageId = v4();
-  let ticketID = "RMTK" + Math.floor(100000 + Math.random() * 900000);
+  let ticketID = "TK" + Math.floor(100000 + Math.random() * 900000);
 
   parsed.attachments.forEach((item) => {
     attachmentArr.push({
@@ -49,20 +49,25 @@ const readMail = async (mailID) => {
       firebaseMessageId: firebaseMessageId,
       references: parsed.references,
       email: parsed.from.value[0].address,
+      sendMail: false,
       messageId: parsed.messageId,
-      subject: parsed.headers.get("subject"),
-      message: parsed.html,
+      subject: parsed.headers?.get("subject") ?? "",
+      message: parsed.html ?? parsed.textAsHtml ?? parsed.text,
       to: parsed.to.value[0].address,
       attachments: attachmentArr,
       cc: parsed.cc?.value?.map((addr) => addr.address) ?? [],
     })
     .set("Accept", "*/*")
     .then((response) => {
-      console.log(response);
+      writeLog(response);
     })
     .catch((err) => {
-      console.log(err);
+      writeLog(err);
     });
+};
+
+const isObject = (value) => {
+  return value != null && typeof value == "object" && !Array.isArray(value);
 };
 
 const writeToFile = async (fileName, data, ticketID, messageId) => {
@@ -88,10 +93,18 @@ const writeToFile = async (fileName, data, ticketID, messageId) => {
       destination: destination,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Send mail error: ", err);
   }
 
-  console.log("successfully uploaded to " + ticketID, messageId);
+  writeLog("successfully uploaded to " + ticketID, messageId);
+};
+
+const writeLog = (log) => {
+  var logStream = fs.createWriteStream("log.txt", { flags: "a" });
+  logStream.write("Start log \n");
+  logStream.write(isObject(log) ? JSON.stringify(log) : log.toString() + "\n");
+  logStream.write("\n");
+  logStream.end("End log \n");
 };
 
 const main = async () => {
@@ -117,17 +130,17 @@ const main = async () => {
 
   try {
     client.on("exists", (data) => {
-      console.log(`Message count in "${data.path}" is ${data.count}`);
-      console.log(data);
+      writeLog(`Message count in "${data.path}" is ${data.count}`);
+      writeLog(data);
       readMail();
     });
 
     client.on("error", (error) => {
-      console.log(error);
+      writeLog("Error output: ", error);
     });
 
     client.on("log", (entry) => {
-      console.log(`${entry.cid} ${entry.msg}`);
+      writeLog("Log output: ", `${entry.cid} ${entry.msg}`);
     });
 
     client.on("close", () => {
