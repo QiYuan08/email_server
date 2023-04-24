@@ -26,15 +26,22 @@ const readMail = async (mailID) => {
   let firebaseMessageId = v4();
   let ticketID = "TK" + Math.floor(100000 + Math.random() * 900000);
 
-  parsed.attachments.forEach((item) => {
-    attachmentArr.push({
-      filename: item.filename,
-      size: item.size,
-      // contentBuffer: item.content,
-    });
+  await Promise.all(
+    parsed.attachments.map(async (item) => {
+      attachmentArr.push({
+        filename: item.filename,
+        size: item.size,
+        // contentBuffer: item.content,
+      });
 
-    writeToFile(item.filename, item.content, ticketID, firebaseMessageId);
-  });
+      await writeToFile(
+        item.filename,
+        item.content,
+        ticketID,
+        firebaseMessageId
+      );
+    })
+  );
 
   // https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket
   // "http://127.0.0.1:5001/ticketing-60a94/us-central1/mailer/create-ticket"
