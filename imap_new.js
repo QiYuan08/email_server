@@ -10,7 +10,7 @@ const bucket = require("./storage");
 const { v4 } = require("uuid");
 
 // const app = initializeApp();
-const userEmail = "chaelqi89@gmail.com";
+const userEmail = "support@magit.sg";
 let client;
 
 const readMail = async (mailID) => {
@@ -122,7 +122,7 @@ const main = async () => {
     auth: {
       // chaelqi89gmail
       user: userEmail,
-      pass: "ghpdcpxcsgviyczr",
+      pass: "zvevmwhhwvoamzha",
     },
   });
 
