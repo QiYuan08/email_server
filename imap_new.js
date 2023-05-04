@@ -10,7 +10,7 @@ const bucket = require("./storage");
 const { v4 } = require("uuid");
 
 // const app = initializeApp();
-const userEmail = "support@magit.sg";
+const userEmail = "magittester@gmail.com";
 let client;
 
 const readMail = async (mailID) => {
@@ -120,9 +120,15 @@ const main = async () => {
     port: 993,
     secure: true,
     auth: {
-      // chaelqi89gmail
       user: userEmail,
-      pass: "zvevmwhhwvoamzha",
+
+      // magit.sg
+      // pass: "ghpdcpxcsgviyczr",
+
+      pass: "bshhoioghiccfidd",
+
+      // chaelqi89gmail
+      // pass: "zvevmwhhwvoamzha",
     },
   });
 
