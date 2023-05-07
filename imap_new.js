@@ -29,7 +29,7 @@ const readMail = async (mailID) => {
     )
     .set("Content-Type", "application/json")
     .send({
-      references: parsed.references,
+      references: parsed.references ?? ["none"],
     })
     .set("Accept", "application/json")
     .then(async (response) => {
