@@ -22,54 +22,74 @@ const readMail = async (mailID) => {
   // and simpleParser is able to process the stream as a Promise
   const parsed = await simpleParser(content);
 
-  let attachmentArr = [];
-  let firebaseMessageId = v4();
-  let ticketID = "TK" + Math.floor(100000 + Math.random() * 900000);
-
-  await Promise.all(
-    parsed.attachments.map(async (item) => {
-      attachmentArr.push({
-        filename: item.filename,
-        size: item.size,
-        // contentBuffer: item.content,
-      });
-
-      await writeToFile(
-        item.filename,
-        item.content,
-        ticketID,
-        firebaseMessageId
-      );
-    })
-  );
-
-  // https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket
-  // "http://127.0.0.1:5001/ticketing-60a94/us-central1/mailer/create-ticket"
-
+  // get the ticketID
   superagent
     .post(
-      "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket"
+      "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/get-id"
     )
     .set("Content-Type", "application/json")
     .send({
-      ticketID: ticketID,
-      firebaseMessageId: firebaseMessageId,
       references: parsed.references,
-      email: parsed.from.value[0].address,
-      sendMail: false,
-      messageId: parsed.messageId,
-      subject: parsed.headers?.get("subject") ?? "",
-      message: parsed.html ?? parsed.textAsHtml ?? parsed.text,
-      to: parsed.to.value[0].address,
-      attachments: attachmentArr,
-      cc: parsed.cc?.value?.map((addr) => addr.address) ?? [],
     })
-    .set("Accept", "*/*")
-    .then((response) => {
-      writeLog(response);
+    .set("Accept", "application/json")
+    .then(async (response) => {
+      let data = response.body;
+      console.log(data);
+      let ticketID = data.exist
+        ? data.ticketID
+        : "TK" + Math.floor(100000 + Math.random() * 900000);
+
+      let attachmentArr = [];
+      let firebaseMessageId = v4();
+
+      await Promise.all(
+        parsed.attachments.map(async (item) => {
+          attachmentArr.push({
+            filename: item.filename,
+            size: item.size,
+            // contentBuffer: item.content,
+          });
+
+          await writeToFile(
+            item.filename,
+            item.content,
+            ticketID,
+            firebaseMessageId
+          );
+        })
+      );
+
+      // https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket
+      // "http://127.0.0.1:5001/ticketing-60a94/us-central1/mailer/create-ticket"
+
+      superagent
+        .post(
+          "https://us-central1-ticketing-60a94.cloudfunctions.net/mailer/create-ticket"
+        )
+        .set("Content-Type", "application/json")
+        .send({
+          ticketID: ticketID,
+          firebaseMessageId: firebaseMessageId,
+          references: parsed.references,
+          email: parsed.from.value[0].address,
+          sendMail: false,
+          messageId: parsed.messageId,
+          subject: parsed.headers?.get("subject") ?? "",
+          message: parsed.html ?? parsed.textAsHtml ?? parsed.text,
+          to: parsed.to.value[0].address,
+          attachments: attachmentArr,
+          cc: parsed.cc?.value?.map((addr) => addr.address) ?? [],
+        })
+        .set("Accept", "*/*")
+        .then((response) => {
+          writeLog(response);
+        })
+        .catch((err) => {
+          writeLog(err);
+        });
     })
-    .catch((err) => {
-      writeLog(err);
+    .catch((error) => {
+      console.error(error);
     });
 };
 
