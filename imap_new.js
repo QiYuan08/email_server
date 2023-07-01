@@ -5,8 +5,6 @@ const superagent = require("superagent");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
-const admin = require("firebase-admin");
-const bucket = require("./storage");
 const { v4 } = require("uuid");
 
 // const app = initializeApp();
