@@ -51,9 +51,9 @@ const readMail = async (mailID) => {
     .end((err, response) => {
       if (err) {
         console.log(err);
-        writeLog(err);
+        // writeLog(err);
       } else {
-        writeLog(response);
+        // writeLog(response);
         console.log("1233432534523656536", response.body);
       }
     });
@@ -127,19 +127,19 @@ const writeLog = (log) => {
 
 const main = async () => {
   client = new ImapFlow({
-    // host: "imap.gmail.com",
-    host: "cloudmail103.zonecybersite.com",
+    host: "imap.gmail.com",
+    // host: "cloudmail103.zonecybersite.com",
     port: 993,
     secure: true,
     auth: {
-      user: "support@magit.sg",
-      pass: "Mag@1234$$",
+      // user: "support@magit.sg",
+      // pass: "Mag@1234$$",
 
       // user: "chaelqi89@gmail.com",
       // pass: "ghpdcpxcsgviyczr",
 
-      // user: "magittester@gmail.com",
-      // pass: "bshhoioghiccfidd",
+      user: "magittester@gmail.com",
+      pass: "bshhoioghiccfidd",
     },
   });
 
@@ -154,17 +154,17 @@ const main = async () => {
 
   try {
     client.on("exists", (data) => {
-      writeLog(`Message count in "${data.path}" is ${data.count}`);
-      writeLog(data);
+      // writeLog(`Message count in "${data.path}" is ${data.count}`);
+      // writeLog(data);
       readMail();
     });
 
     client.on("error", (error) => {
-      writeLog("Error output: ", error);
+      // writeLog("Error output: ", error);
     });
 
     client.on("log", (entry) => {
-      writeLog("Log output: ", `${entry.cid} ${entry.msg}`);
+      // writeLog("Log output: ", `${entry.cid} ${entry.msg}`);
     });
 
     client.on("close", () => {
